@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = "https://muhammed-mustafa.vercel.app";
+const DEFAULT_SITE_URL = "https://muhamed-mustafa.vercel.app";
 
 function resolveSiteUrl() {
   const raw = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
