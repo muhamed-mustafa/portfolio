@@ -95,8 +95,8 @@ export function Hero() {
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="bg-grid absolute inset-0" />
-        <div className="absolute -top-40 left-1/2 h-[42rem] w-[42rem] -translate-x-1/2 animate-aurora rounded-full bg-[radial-gradient(circle_at_30%_30%,var(--accent),transparent_60%)] opacity-25 blur-3xl" />
-        <div className="absolute top-20 right-[-10rem] h-[30rem] w-[30rem] animate-aurora rounded-full bg-[radial-gradient(circle,var(--accent-2),transparent_60%)] opacity-20 blur-3xl [animation-delay:-6s]" />
+        <div className="absolute -top-40 left-1/2 h-[42rem] w-[42rem] -translate-x-1/2 animate-aurora rounded-full bg-[radial-gradient(circle_at_30%_30%,var(--accent),transparent_60%)] opacity-25" />
+        <div className="absolute top-20 right-[-10rem] h-[30rem] w-[30rem] animate-aurora rounded-full bg-[radial-gradient(circle,var(--accent-2),transparent_60%)] opacity-20 [animation-delay:-6s]" />
         <motion.div className="absolute inset-0" style={{ background: spotlight }} />
       </div>
 
@@ -105,61 +105,35 @@ export function Hero() {
         className="relative mx-auto grid w-full max-w-6xl items-center gap-16 lg:grid-cols-[1.2fr_1fr]"
       >
         <div className="min-w-0">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease }}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-3 py-1.5 text-xs text-muted backdrop-blur"
-          >
+          <div className="enter-fade mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-3 py-1.5 text-xs text-muted">
+
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
             </span>
             {c.badge}
-          </motion.div>
+          </div>
 
           <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl lg:text-6xl xl:text-7xl">
             {nameWords.map((word, i) => (
               <span key={word}>
                 <span className="inline-block overflow-hidden pb-3 align-bottom">
-                  <motion.span
-                    className="inline-block"
-                    initial={{ y: "110%" }}
-                    animate={{ y: "0%" }}
-                    transition={{ duration: 0.9, delay: 0.15 + i * 0.12, ease }}
-                  >
+                  <span className="enter-rise" style={{ animationDelay: `${0.1 + i * 0.12}s` }}>
                     {word}
-                  </motion.span>
+                  </span>
                 </span>
                 {i < nameWords.length - 1 ? " " : null}
               </span>
             ))}
           </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.45, ease }}
-            className="mt-4 max-w-full text-lg font-medium tracking-tight sm:text-2xl md:text-3xl"
-          >
+          <p className="enter-fade mt-4 max-w-full text-lg font-medium tracking-tight sm:text-2xl md:text-3xl" style={{ animationDelay: "0.35s" }}>
             <RoleRotator roles={c.rotatingRoles} />
-          </motion.p>
+          </p>
 
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.6, ease }}
-            className="mt-6 max-w-xl text-lg text-pretty text-muted"
-          >
-            {c.intro}
-          </motion.p>
+          <p className="mt-6 max-w-xl text-lg text-pretty text-muted">{c.intro}</p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.75, ease }}
-            className="mt-10 flex flex-wrap items-center gap-3"
-          >
+          <div className="enter-fade mt-10 flex flex-wrap items-center gap-3" style={{ animationDelay: "0.5s" }}>
             <Magnetic>
               <button
                 type="button"
@@ -188,18 +162,13 @@ export function Hero() {
                 <LinkedInIcon className="size-5" />
               </a>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="mt-8 flex items-center gap-1.5 text-sm text-muted"
-          >
+          <p className="enter-fade mt-8 flex items-center gap-1.5 text-sm text-muted" style={{ animationDelay: "0.65s" }}>
             <MapPin className="size-4" /> {c.location}
-          </motion.p>
+          </p>
         </div>
-        <div className="hidden lg:block">
+        <div className="min-w-0">
           <TerminalCard />
         </div>
       </motion.div>
@@ -211,7 +180,7 @@ export function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1, y: [0, 8, 0] }}
         transition={{ opacity: { delay: 1.2 }, y: { duration: 2, repeat: Infinity, ease: "easeInOut" } }}
-        className="absolute bottom-8 left-1/2 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-border text-muted hover:text-foreground"
+        className="absolute bottom-8 left-1/2 hidden size-10 -translate-x-1/2 place-items-center rounded-full border border-border text-muted hover:text-foreground lg:grid"
       >
         <ArrowDown className="size-4" />
       </motion.button>

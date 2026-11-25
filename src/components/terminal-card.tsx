@@ -179,9 +179,9 @@ export function TerminalCard() {
       className="relative"
       dir="ltr"
     >
-      <div aria-hidden="true" className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-accent/25 via-transparent to-accent-2/25 blur-2xl" />
+      <div aria-hidden="true" className="absolute -inset-6 hidden rounded-[2rem] bg-gradient-to-br from-accent/25 via-transparent to-accent-2/25 blur-2xl lg:block" />
       <div
-        className="card relative overflow-hidden rounded-2xl font-mono text-[13px] leading-relaxed shadow-2xl"
+        className="card relative overflow-hidden rounded-2xl font-mono text-[11px] leading-relaxed shadow-2xl sm:text-[13px]"
         onClick={() => ready && inputRef.current?.focus()}
       >
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
@@ -191,7 +191,7 @@ export function TerminalCard() {
           <span className="ml-3 text-xs text-muted">~/portfolio {"—"} zsh</span>
           {ready ? <span className="ml-auto text-[11px] text-muted">type &quot;help&quot;</span> : null}
         </div>
-        <div ref={bodyRef} data-lenis-prevent className="h-[21rem] overflow-y-auto p-5">
+        <div ref={bodyRef} data-lenis-prevent className="h-[19rem] overflow-y-auto p-4 sm:h-[21rem] sm:p-5">
           <p aria-hidden="true">
             <Prompt />
             <span>{command.slice(0, typed)}</span>

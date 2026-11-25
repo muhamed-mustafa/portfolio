@@ -41,11 +41,11 @@ export function PostFooter() {
       <p className="font-semibold">Thanks for reading.</p>
       <p className="mt-2 text-muted">
         Questions or feedback? Email me at{" "}
-        <a className="text-accent hover:underline" href={`mailto:${links.email}`}>
+        <a className="text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent" href={`mailto:${links.email}`}>
           {links.email}
         </a>{" "}
         or find me on{" "}
-        <a className="text-accent hover:underline" href={links.linkedin} target="_blank" rel="noopener noreferrer">
+        <a className="text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent" href={links.linkedin} target="_blank" rel="noopener noreferrer">
           LinkedIn
         </a>
         .

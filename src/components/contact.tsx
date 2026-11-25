@@ -33,7 +33,7 @@ export function Contact() {
         <Reveal>
           <div className="card relative overflow-hidden rounded-[2rem] px-6 py-16 text-center sm:px-16">
             <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-              <div className="absolute -top-24 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--accent),transparent_65%)] opacity-25 blur-3xl" />
+              <div className="absolute -top-24 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--accent),transparent_65%)] opacity-25" />
               <div className="bg-grid absolute inset-0 opacity-60" />
             </div>
             <div className="relative">

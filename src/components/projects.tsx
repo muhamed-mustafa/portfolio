@@ -6,6 +6,7 @@ import { links, type Project } from "@/content";
 import { useContent } from "@/content/context";
 import { cn } from "@/lib/cn";
 import { GitHubIcon } from "./icons";
+import { ProjectVisual } from "./project-visual";
 import { SectionHeading } from "./reveal";
 
 function ProjectCard({ project, index }: { project: Project; index: number }) {
@@ -39,6 +40,9 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
       }}
       className={cn("card spotlight group flex flex-col rounded-3xl p-6 sm:p-8", project.featured && "md:col-span-2")}
     >
+      <div className="mb-6">
+        <ProjectVisual repo={project.repo} title={project.title} />
+      </div>
       <div className="flex items-start justify-between gap-4">
         <div>
           {project.featured ? (

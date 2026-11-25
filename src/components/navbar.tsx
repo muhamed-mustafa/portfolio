@@ -88,20 +88,19 @@ export function Navbar() {
             type="button"
             onClick={() => window.dispatchEvent(new Event("open-command-menu"))}
             className="hidden items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1.5 font-mono text-xs text-muted transition-colors hover:text-foreground sm:flex"
-            aria-label={c.ui.commandMenu}
             dir="ltr"
           >
-            <Command className="size-3.5" /> K
+            <Command className="size-3.5" aria-hidden="true" /> K<span className="sr-only"> {c.ui.commandMenu}</span>
           </button>
           <a
             href={c.otherLocale.href}
             hrefLang={c.locale === "en" ? "ar" : "en"}
-            aria-label={c.ui.switchLanguage}
             title={c.otherLocale.label}
             className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 text-sm text-muted transition-colors hover:text-foreground"
           >
-            <Languages className="size-4" />
+            <Languages className="size-4" aria-hidden="true" />
             <span className="font-medium">{c.otherLocale.short}</span>
+            <span className="sr-only"> {c.ui.switchLanguage}</span>
           </a>
           <ThemeToggle />
           <button

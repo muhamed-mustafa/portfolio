@@ -2,7 +2,7 @@
 
 import { Ban, CreditCard, MessageSquare, Play, RotateCcw, ShoppingCart, TimerOff } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { links, type ScenarioId } from "@/content";
 import { useContent } from "@/content/context";
 import { cn } from "@/lib/cn";
@@ -11,22 +11,94 @@ import { SectionHeading } from "./reveal";
 
 type Svc = "auth" | "post" | "comment" | "reply" | "market" | "order" | "payment" | "expiration";
 
-const W = 790;
-const H = 460;
-const BUS_Y = 230;
-const NODE_W = 128;
-const NODE_H = 54;
-
-const services: Record<Svc, { x: number; y: number; db: string }> = {
-  auth: { x: 110, y: 78, db: "MongoDB" },
-  post: { x: 300, y: 78, db: "MongoDB" },
-  comment: { x: 490, y: 78, db: "MongoDB" },
-  reply: { x: 680, y: 78, db: "MongoDB" },
-  market: { x: 110, y: 382, db: "MongoDB" },
-  order: { x: 300, y: 382, db: "MongoDB" },
-  payment: { x: 490, y: 382, db: "MongoDB" },
-  expiration: { x: 680, y: 382, db: "Redis · Bull" },
+const SVCS: Svc[] = ["auth", "post", "comment", "reply", "market", "order", "payment", "expiration"];
+const DB: Record<Svc, string> = {
+  auth: "MongoDB",
+  post: "MongoDB",
+  comment: "MongoDB",
+  reply: "MongoDB",
+  market: "MongoDB",
+  order: "MongoDB",
+  payment: "MongoDB",
+  expiration: "Redis · Bull",
 };
+
+type Layout = {
+  w: number;
+  h: number;
+  nodeW: number;
+  nodeH: number;
+  vertical: boolean;
+  bus: number;
+  pos: Record<Svc, { x: number; y: number }>;
+};
+
+const wide: Layout = {
+  w: 790,
+  h: 460,
+  nodeW: 128,
+  nodeH: 54,
+  vertical: false,
+  bus: 230,
+  pos: {
+    auth: { x: 110, y: 78 },
+    post: { x: 300, y: 78 },
+    comment: { x: 490, y: 78 },
+    reply: { x: 680, y: 78 },
+    market: { x: 110, y: 382 },
+    order: { x: 300, y: 382 },
+    payment: { x: 490, y: 382 },
+    expiration: { x: 680, y: 382 },
+  },
+};
+
+const tall: Layout = {
+  w: 360,
+  h: 560,
+  nodeW: 116,
+  nodeH: 54,
+  vertical: true,
+  bus: 180,
+  pos: {
+    auth: { x: 66, y: 70 },
+    post: { x: 66, y: 210 },
+    comment: { x: 66, y: 350 },
+    reply: { x: 66, y: 490 },
+    market: { x: 294, y: 70 },
+    order: { x: 294, y: 210 },
+    payment: { x: 294, y: 350 },
+    expiration: { x: 294, y: 490 },
+  },
+};
+
+function subscribeNarrow(cb: () => void) {
+  const mq = window.matchMedia("(max-width: 639px)");
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+function useNarrow() {
+  return useSyncExternalStore(subscribeNarrow, () => window.matchMedia("(max-width: 639px)").matches, () => false);
+}
+
+function anchor(L: Layout, s: Svc) {
+  const p = L.pos[s];
+  if (L.vertical) return { x: p.x < L.bus ? p.x + L.nodeW / 2 : p.x - L.nodeW / 2, y: p.y };
+  return { x: p.x, y: p.y < L.bus ? p.y + L.nodeH / 2 : p.y - L.nodeH / 2 };
+}
+
+function route(L: Layout, from: Svc, to: Svc) {
+  const a = anchor(L, from);
+  const b = anchor(L, to);
+  const pts = L.vertical
+    ? [[a.x, a.y], [L.bus, a.y], [L.bus, b.y], [b.x, b.y]]
+    : [[a.x, a.y], [a.x, L.bus], [b.x, L.bus], [b.x, b.y]];
+  const seg = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
+  const total = seg.reduce((s, v) => s + v, 0) || 1;
+  let acc = 0;
+  const times = [0, ...seg.map((v) => (acc += v) / total)];
+  return { cx: pts.map((p) => p[0]), cy: pts.map((p) => p[1]), times };
+}
 
 type Hop = { from: Svc; subject: string; to: { svc: Svc; effect: string }[] };
 
@@ -87,24 +159,6 @@ const palette: Record<ScenarioId, string> = {
   ban: "#f43f5e",
 };
 
-const edgeY = (s: Svc) => (services[s].y < BUS_Y ? services[s].y + NODE_H / 2 : services[s].y - NODE_H / 2);
-
-function route(from: Svc, to: Svc) {
-  const a = services[from];
-  const b = services[to];
-  const pts = [
-    [a.x, edgeY(from)],
-    [a.x, BUS_Y],
-    [b.x, BUS_Y],
-    [b.x, edgeY(to)],
-  ];
-  const seg = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
-  const total = seg.reduce((s, v) => s + v, 0) || 1;
-  let acc = 0;
-  const times = [0, ...seg.map((v) => (acc += v) / total)];
-  return { cx: pts.map((p) => p[0]), cy: pts.map((p) => p[1]), times };
-}
-
 type Packet = { id: number; from: Svc; to: Svc; color: string };
 type LogEntry = { id: number; t: string; kind: "pub" | "ack"; subject: string; from: Svc; to?: Svc; effect?: string; color: string };
 
@@ -129,6 +183,10 @@ export function Systems() {
   const runRef = useRef(0);
   const logRef = useRef<HTMLOListElement>(null);
   const duration = reduce ? 0 : 1400;
+  const L = useNarrow() ? tall : wide;
+  const busRect = L.vertical
+    ? { x: L.bus - 14, y: 24, width: 28, height: L.h - 48 }
+    : { x: 40, y: L.bus - 14, width: L.w - 80, height: 28 };
 
   useEffect(() => () => void (runRef.current += 1), []);
 
@@ -191,10 +249,10 @@ export function Systems() {
                 <GitHubIcon className="size-3.5" /> {c.ui.source}
               </a>
             </div>
-            <div className="overflow-x-auto" data-lenis-prevent dir="ltr">
-              <svg viewBox={`0 0 ${W} ${H}`} className="block w-full min-w-[640px]" role="img" aria-label={c.sections.systems.title}>
+            <div dir="ltr">
+              <svg viewBox={`0 0 ${L.w} ${L.h}`} className="mx-auto block w-full max-w-md sm:max-w-none" role="img" aria-label={c.sections.systems.title}>
                 <defs>
-                  <linearGradient id="bus" x1="0" x2="1">
+                  <linearGradient id="bus" x1="0" x2={L.vertical ? "0" : "1"} y1="0" y2={L.vertical ? "1" : "0"}>
                     <stop offset="0" stopColor="var(--accent)" stopOpacity="0.15" />
                     <stop offset="0.5" stopColor="var(--accent-2)" stopOpacity="0.35" />
                     <stop offset="1" stopColor="var(--accent)" stopOpacity="0.15" />
@@ -208,25 +266,25 @@ export function Systems() {
                   </filter>
                 </defs>
 
-                {(Object.keys(services) as Svc[]).map((s) => (
-                  <line
-                    key={`l-${s}`}
-                    x1={services[s].x}
-                    x2={services[s].x}
-                    y1={edgeY(s)}
-                    y2={BUS_Y}
-                    stroke="var(--border)"
-                    strokeWidth={2}
-                    strokeDasharray="4 5"
-                  />
-                ))}
+                {SVCS.map((s) => {
+                  const a = anchor(L, s);
+                  return (
+                    <line
+                      key={`l-${s}`}
+                      x1={a.x}
+                      y1={a.y}
+                      x2={L.vertical ? L.bus : a.x}
+                      y2={L.vertical ? a.y : L.bus}
+                      stroke="var(--border)"
+                      strokeWidth={2}
+                      strokeDasharray="4 5"
+                    />
+                  );
+                })}
 
-                <rect x={40} y={BUS_Y - 14} width={W - 80} height={28} rx={14} fill="url(#bus)" stroke="var(--border)" />
+                <rect {...busRect} rx={14} fill="url(#bus)" stroke="var(--border)" />
                 <motion.rect
-                  x={40}
-                  y={BUS_Y - 14}
-                  width={W - 80}
-                  height={28}
+                  {...busRect}
                   rx={14}
                   fill="none"
                   stroke="var(--accent)"
@@ -234,20 +292,27 @@ export function Systems() {
                   initial={false}
                   animate={{ opacity: packets.length ? 0.9 : 0 }}
                 />
-                <text x={W / 2} y={BUS_Y + 5} textAnchor="middle" className="fill-[var(--foreground)] font-mono text-[12px] font-semibold">
+                <text
+                  x={L.vertical ? L.bus : L.w / 2}
+                  y={L.vertical ? L.h / 2 : L.bus + 5}
+                  textAnchor="middle"
+                  transform={L.vertical ? `rotate(-90 ${L.bus} ${L.h / 2}) translate(0 4)` : undefined}
+                  className="fill-[var(--foreground)] font-mono text-[12px] font-semibold"
+                >
                   NATS Streaming
                 </text>
 
-                {(Object.keys(services) as Svc[]).map((s) => {
-                  const { x, y, db } = services[s];
+                {SVCS.map((s) => {
+                  const { x, y } = L.pos[s];
+                  const db = DB[s];
                   return (
                     <g key={s}>
                       <motion.rect
                         key={`${s}-${flash[s] ?? 0}`}
-                        x={x - NODE_W / 2}
-                        y={y - NODE_H / 2}
-                        width={NODE_W}
-                        height={NODE_H}
+                        x={x - L.nodeW / 2}
+                        y={y - L.nodeH / 2}
+                        width={L.nodeW}
+                        height={L.nodeH}
                         rx={14}
                         fill="var(--surface)"
                         stroke="var(--border)"
@@ -268,7 +333,7 @@ export function Systems() {
 
                 <AnimatePresence>
                   {packets.map((p) => {
-                    const r = route(p.from, p.to);
+                    const r = route(L, p.from, p.to);
                     return (
                       <motion.circle
                         key={p.id}

@@ -1,7 +1,7 @@
 import { content, type Locale } from "@/content";
 import { ContentProvider } from "@/content/context";
 import { About } from "./about";
-import { CommandMenu } from "./command-menu";
+import { CommandMenuLazy as CommandMenu } from "./command-menu-lazy";
 import { Contact } from "./contact";
 import { Experience } from "./experience";
 import { Footer } from "./footer";

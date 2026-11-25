@@ -59,6 +59,50 @@
   50% { opacity: 0; }
 }
 
+@keyframes flow {
+  to { stroke-dashoffset: -20; }
+}
+
+@keyframes bus-shimmer {
+  0% { opacity: 0.25; }
+  50% { opacity: 0.85; }
+  100% { opacity: 0.25; }
+}
+
+/* Diagram flow animations run only while the card is hovered, so idle pages stay idle. */
+.flow-edge {
+  animation: flow 1.2s linear infinite paused;
+}
+
+.group:hover .flow-edge,
+.group:hover .flow-bus {
+  animation-play-state: running;
+}
+
+/* Hero entrance: pure CSS so it starts on first paint, before JavaScript loads. */
+@keyframes rise {
+  from { transform: translateY(110%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.enter-rise {
+  display: inline-block;
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.enter-fade {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.flow-bus {
+  animation: bus-shimmer 2.4s ease-in-out infinite paused;
+}
+
 html {
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
@@ -161,8 +205,14 @@ html[lang="ar"] body {
 .card {
   position: relative;
   border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--surface) 82%, transparent);
-  backdrop-filter: blur(12px);
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+}
+
+@media (min-width: 1024px) {
+  .card {
+    background: color-mix(in oklab, var(--surface) 82%, transparent);
+    backdrop-filter: blur(12px);
+  }
 }
 
 .spotlight::before {
@@ -178,6 +228,11 @@ html[lang="ar"] body {
 
 .spotlight:hover::before {
   opacity: 1;
+}
+
+@media (max-width: 1023px) {
+  .noise::after { display: none; }
+  .animate-aurora { animation: none; }
 }
 
 .noise::after {
