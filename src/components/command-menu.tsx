@@ -1,16 +1,21 @@
 "use client";
 
-import { ArrowUpRight, Copy, FileDown, Hash, Moon, Search } from "lucide-react";
+import { ArrowUpRight, Copy, FileDown, Hash, Languages, Moon, NotebookPen, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { navItems, profile } from "@/data/profile";
+import { links } from "@/content";
+import { useContent } from "@/content/context";
+import { posts } from "@/content/posts";
 import { scrollToId } from "@/lib/cn";
 import { GitHubIcon, LinkedInIcon } from "./icons";
 import { applyTheme } from "./theme-toggle";
 
-type Item = { id: string; label: string; group: string; icon: ReactNode; run: () => void };
+type Item = { id: string; label: string; group: string; icon: ReactNode; external?: boolean; run: () => void };
 
 export function CommandMenu() {
+  const c = useContent();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
@@ -23,60 +28,53 @@ export function CommandMenu() {
     setIndex(0);
   }, []);
 
-  const items = useMemo<Item[]>(
-    () => [
-      ...navItems.map((n) => ({
+  const items = useMemo<Item[]>(() => {
+    const g = c.ui.groups;
+    return [
+      ...c.nav.map((n) => ({
         id: `nav-${n.id}`,
-        label: `Go to ${n.label}`,
-        group: "Navigate",
+        label: `${c.ui.goTo} ${n.label}`,
+        group: g.navigate,
         icon: <Hash className="size-4" />,
         run: () => scrollToId(n.id),
       })),
-      {
-        id: "github",
-        label: "Open GitHub",
-        group: "Links",
-        icon: <GitHubIcon className="size-4" />,
-        run: () => window.open(profile.github, "_blank", "noopener"),
-      },
-      {
-        id: "linkedin",
-        label: "Open LinkedIn",
-        group: "Links",
-        icon: <LinkedInIcon className="size-4" />,
-        run: () => window.open(profile.linkedin, "_blank", "noopener"),
-      },
-      {
-        id: "cv",
-        label: "Download CV",
-        group: "Links",
-        icon: <FileDown className="size-4" />,
-        run: () => window.open(profile.cv, "_blank", "noopener"),
-      },
+      ...posts.map((p) => ({
+        id: `post-${p.slug}`,
+        label: p.title,
+        group: c.sections.writing.eyebrow,
+        icon: <NotebookPen className="size-4" />,
+        run: () => router.push(`/blog/${p.slug}`),
+      })),
+      { id: "github", label: c.ui.openGithub, group: g.links, external: true, icon: <GitHubIcon className="size-4" />, run: () => window.open(links.github, "_blank", "noopener") },
+      { id: "linkedin", label: c.ui.openLinkedin, group: g.links, external: true, icon: <LinkedInIcon className="size-4" />, run: () => window.open(links.linkedin, "_blank", "noopener") },
+      { id: "cv", label: c.ui.downloadCv, group: g.links, external: true, icon: <FileDown className="size-4" />, run: () => window.open(links.cv, "_blank", "noopener") },
       {
         id: "email",
-        label: "Copy email address",
-        group: "Actions",
+        label: c.ui.copyEmail,
+        group: g.actions,
         icon: <Copy className="size-4" />,
         run: () => {
-          void navigator.clipboard.writeText(profile.email);
-          setToast("Email copied");
+          void navigator.clipboard.writeText(links.email);
+          setToast(c.ui.emailCopied);
           window.setTimeout(() => setToast(null), 1800);
         },
       },
       {
         id: "theme",
-        label: "Toggle theme",
-        group: "Actions",
+        label: c.ui.toggleTheme,
+        group: g.actions,
         icon: <Moon className="size-4" />,
-        run: () => {
-          const dark = document.documentElement.getAttribute("data-theme") === "dark";
-          applyTheme(dark ? "light" : "dark");
-        },
+        run: () => applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"),
       },
-    ],
-    [],
-  );
+      {
+        id: "lang",
+        label: c.otherLocale.label,
+        group: g.actions,
+        icon: <Languages className="size-4" />,
+        run: () => window.location.assign(c.otherLocale.href),
+      },
+    ];
+  }, [c, router]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -123,14 +121,12 @@ export function CommandMenu() {
     }
   }
 
-  let lastGroup = "";
-
   return (
     <>
       <AnimatePresence>
         {open ? (
           <motion.div
-            className="fixed inset-0 z-[80] flex items-start justify-center bg-black/40 px-4 pt-[18vh] backdrop-blur-sm"
+            className="fixed inset-0 z-[80] flex items-start justify-center bg-black/40 px-4 pt-[14vh] backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -140,7 +136,7 @@ export function CommandMenu() {
             <motion.div
               role="dialog"
               aria-modal="true"
-              aria-label="Command menu"
+              aria-label={c.ui.commandMenu}
               initial={{ opacity: 0, y: -12, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -12, scale: 0.97 }}
@@ -157,17 +153,16 @@ export function CommandMenu() {
                     setQuery(e.target.value);
                     setIndex(0);
                   }}
-                  placeholder="Type a command or search..."
+                  placeholder={c.ui.commandPlaceholder}
                   className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted"
-                  aria-label="Search commands"
+                  aria-label={c.ui.commandPlaceholder}
                 />
                 <kbd className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted">ESC</kbd>
               </div>
               <ul className="max-h-[min(28rem,60vh)] overflow-y-auto p-2" role="listbox">
-                {filtered.length === 0 ? <li className="px-3 py-6 text-center text-sm text-muted">No results</li> : null}
+                {filtered.length === 0 ? <li className="px-3 py-6 text-center text-sm text-muted">{c.ui.noResults}</li> : null}
                 {filtered.map((item, i) => {
-                  const header = item.group !== lastGroup ? item.group : null;
-                  lastGroup = item.group;
+                  const header = i === 0 || filtered[i - 1].group !== item.group ? item.group : null;
                   return (
                     <li key={item.id}>
                       {header ? <p className="px-3 pt-3 pb-1 font-mono text-[10px] tracking-widest text-muted uppercase">{header}</p> : null}
@@ -177,13 +172,13 @@ export function CommandMenu() {
                         aria-selected={i === index}
                         onMouseEnter={() => setIndex(i)}
                         onClick={() => select(item)}
-                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm transition-colors ${
                           i === index ? "bg-surface-2 text-foreground" : "text-muted"
                         }`}
                       >
                         {item.icon}
                         <span className="flex-1">{item.label}</span>
-                        {item.group === "Links" ? <ArrowUpRight className="size-3.5" /> : null}
+                        {item.external ? <ArrowUpRight className="size-3.5 rtl:-scale-x-100" /> : null}
                       </button>
                     </li>
                   );

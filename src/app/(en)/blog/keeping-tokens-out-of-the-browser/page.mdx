@@ -1,0 +1,120 @@
+import { PostFooter, PostHeader } from "@/components/post-header";
+
+export const metadata = {
+  title: "Keeping tokens out of the browser with a backend-for-frontend",
+  description:
+    "Why my Next.js admin panel never gives the browser an access token, and the session, CSRF and refresh-rotation details that make that work.",
+  alternates: { canonical: "/blog/keeping-tokens-out-of-the-browser" },
+  openGraph: { type: "article", publishedTime: "2026-11-24" },
+};
+
+<article className="mx-auto max-w-3xl">
+
+<PostHeader slug="keeping-tokens-out-of-the-browser" />
+
+My rental-platform API issues short-lived JWT access tokens and rotating refresh tokens. The usual way to consume that from a React app is to store both tokens in the browser and attach them to every request. For the [admin panel](https://github.com/muhamed-mustafa/airbnb-clone-web) I went the other way: the browser never sees a token at all.
+
+This post explains the design, and the details that turned out to matter more than the idea itself.
+
+## The shape of it
+
+The panel is a Next.js app. Next to the pages it has a small backend-for-frontend (BFF) made of route handlers:
+
+- `POST /bff/session` signs in, `GET /bff/session` reports the session, `DELETE /bff/session` signs out.
+- `/bff/api/...` proxies an allowlist of operations to the NestJS API.
+
+The browser only ever talks to its own origin. The BFF holds the tokens server-side and calls the API on the user's behalf.
+
+That removes tokens from JavaScript entirely, so an XSS bug cannot read them. It also makes CORS unnecessary, and it gives one place to enforce every rule below.
+
+## The session cookie
+
+Both tokens live in a single cookie, sealed (encrypted and signed) with `iron-session`:
+
+```ts
+const sealed = await sealData(tokens, { password: SESSION_SECRET, ttl: maxAge });
+
+(await cookies()).set(COOKIE_NAME, sealed, {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: isProduction,
+  path: "/",
+});
+```
+
+In production the cookie name carries the `__Host-` prefix, which makes the browser reject it unless it is `Secure`, has no `Domain` attribute and uses `Path=/`. That closes off a subdomain setting a cookie that shadows the real one.
+
+The BFF reads JWT claims only to know **when** to refresh and to label the session in the UI. It never uses them to decide what the user may do. Authorization stays in the API.
+
+## CSRF without tokens
+
+A cookie-based session brings CSRF back. Every state-changing BFF request has to pass these checks:
+
+- The `Origin` header must equal the configured `APP_ORIGIN`. When a browser omits `Origin`, `Sec-Fetch-Site` must be `same-origin`.
+- Requests with a body must be `application/json`, which a plain HTML form cannot send.
+
+The value I compare against comes from configuration, **never** from the `Host` or `X-Forwarded-*` headers. Those headers describe the request, so a check built on them can be steered by whoever sends it.
+
+## An allowlist, not a pass-through proxy
+
+`/bff/api/...` does not forward arbitrary paths. Each resource declares the methods and query parameters it accepts. Anything else gets a `404` from the BFF and never reaches the API.
+
+Some responses are also projected. Admin accounts are reduced to `id`, `name`, `email` and `isSuperAdmin`. If a response does not match that shape, the BFF fails closed with a `502` instead of forwarding an unknown payload. That protects the browser even if the API one day returns more than it should.
+
+## Refreshing without races
+
+The access token is short-lived, so refresh is the part that needs the most care. The BFF refreshes in two situations:
+
+- shortly before the access token expires (30 seconds ahead by default);
+- once after the API answers `401`, and then it replays the original request a single time.
+
+Refresh tokens rotate, so two refreshes racing with the same old token would fail. A per-session coordinator handles that:
+
+```ts
+// Simplified: one rotation per session at a time.
+const inFlight = new Map<string, Promise<RefreshResult>>();
+
+function refreshOnce(sessionId: string, refreshToken: string) {
+  const existing = inFlight.get(sessionId);
+  if (existing) return existing;
+
+  const p = rotate(refreshToken).finally(() => inFlight.delete(sessionId));
+  inFlight.set(sessionId, p);
+  return p;
+}
+```
+
+The real coordinator adds two more rules.
+
+- **A short grace window.** For 30 seconds after a rotation, a request that still carries the previous cookie receives the new tokens instead of failing.
+- **Sign-out wins.** If the user signs out while a refresh is in flight, the refreshed tokens are not written back to the cookie.
+
+## When does a session actually end?
+
+This decision affects users more than any other. The BFF ends a session only when the API **confirms** the refresh token is invalid, with a `401`.
+
+Network errors, timeouts, `429` and `5xx` responses return a retryable error and keep the user signed in. Logging someone out because the API was briefly unreachable is a bug.
+
+## Errors the UI can trust
+
+The API returns errors in several shapes: validation errors, HTTP errors and domain errors. A shared normalizer turns all of them into one `AppError` with a kind, form and field errors, and a request id.
+
+The UI looks up text by error code in its own message catalog. It shows backend text only for `4xx` errors, and never for `5xx`. Each request carries a request id that is forwarded to the API and shown for failures the user cannot fix, so a support message can be matched to a log line.
+
+## How it is tested
+
+The end-to-end suite runs the production build of the admin against a real backend, not mocks. The setup exports a pinned backend commit, starts it on a separate port with generated secrets and short-lived tokens, so every run goes through the refresh path. It then drops and recreates a dedicated test database, after checking its name on the live connection.
+
+The specs cover concurrent refreshes, signing in elsewhere, sign-out racing a refresh, CSRF rejection and the allowlist, besides the normal create, edit and delete flows. Unit tests cover the coordinator, the CSRF verdicts and the error normalizer on their own.
+
+## Trade-offs
+
+- **The coordinator is in memory.** That is correct for one server instance. Running several would need a shared store behind the same interface.
+- **Sign-out is local.** The API has no endpoint to revoke a session yet, so signing out clears the cookie in this browser only, and the UI says so.
+- **More moving parts than tokens in `localStorage`.** I think that is the right price for an admin panel, where a stolen token is worth the most.
+
+The code is on [GitHub](https://github.com/muhamed-mustafa/airbnb-clone-web), together with the [API it talks to](https://github.com/muhamed-mustafa/airbnb-clone-api).
+
+<PostFooter />
+
+</article>

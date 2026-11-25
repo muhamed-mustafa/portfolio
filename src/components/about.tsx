@@ -2,7 +2,7 @@
 
 import { animate, motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { profile, stats } from "@/data/profile";
+import { useContent } from "@/content/context";
 import { Reveal, SectionHeading } from "./reveal";
 
 function Counter({ value, suffix }: { value: number; suffix: string }) {
@@ -18,7 +18,7 @@ function Counter({ value, suffix }: { value: number; suffix: string }) {
   }, [inView, reduce, value]);
 
   return (
-    <span ref={ref} className="tabular-nums">
+    <span ref={ref} className="tabular-nums" dir="ltr">
       {display}
       {suffix}
     </span>
@@ -26,20 +26,21 @@ function Counter({ value, suffix }: { value: number; suffix: string }) {
 }
 
 export function About() {
+  const c = useContent();
   return (
     <section id="about" className="relative px-6 py-28">
       <div className="mx-auto max-w-6xl">
-        <SectionHeading eyebrow="About" title="Backend engineer who cares about the boring details that keep systems correct." />
+        <SectionHeading {...c.sections.about} />
         <div className="grid gap-10 md:grid-cols-[1.3fr_1fr]">
           <div className="space-y-5 text-lg leading-relaxed text-pretty text-muted">
-            {profile.about.map((p, i) => (
+            {c.about.map((p, i) => (
               <Reveal key={p} delay={i * 0.08}>
                 <p>{p}</p>
               </Reveal>
             ))}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {stats.map((s, i) => (
+            {c.stats.map((s, i) => (
               <motion.div
                 key={s.label}
                 initial={{ opacity: 0, scale: 0.94 }}

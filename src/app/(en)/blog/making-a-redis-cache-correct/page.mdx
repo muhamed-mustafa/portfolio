@@ -1,0 +1,152 @@
+import { PostFooter, PostHeader } from "@/components/post-header";
+
+export const metadata = {
+  title: "Making a Redis cache correct under concurrency",
+  description:
+    "Cache-aside is easy until two requests race. How I added stampede protection, token-owned locks, lock renewal and Lua-guarded writes, step by step.",
+  alternates: { canonical: "/blog/making-a-redis-cache-correct" },
+  openGraph: { type: "article", publishedTime: "2026-11-20" },
+};
+
+<article className="mx-auto max-w-3xl">
+
+<PostHeader slug="making-a-redis-cache-correct" />
+
+Putting Redis in front of a slow data source is usually the first performance fix a backend gets. The first version takes ten lines. Making it correct when many requests hit the same key at the same time takes a lot more thought.
+
+I built [redis-mastery-lab](https://github.com/muhamed-mustafa/redis-mastery-lab) to work through that in small steps, each on its own branch: cache-aside, expiry, invalidation, stampede protection, and finally a lock that cannot be released or overwritten by the wrong request. The domain is deliberately tiny, a product catalog with a `GET` and a price `PATCH`, so the only interesting part is the cache.
+
+This post walks through each step and the problem that forced it.
+
+## Step 1: cache-aside
+
+Read the key first. On a miss, load from the source and store the result.
+
+```ts
+async findById(id: string) {
+  const key = `product:${id}`;
+
+  const cached = await redis.get(key);
+  if (cached) return JSON.parse(cached);
+
+  const product = await this.source.findById(id);
+  if (product) await redis.set(key, JSON.stringify(product), { EX: 30 });
+  return product;
+}
+```
+
+The `EX: 30` matters more than it looks. Without an expiry, a value that is never invalidated stays wrong forever. A TTL puts an upper bound on how stale any entry can get, even when every other mechanism fails.
+
+## Step 2: invalidate on write
+
+When the price changes, delete the cached entry so the next read rebuilds it from the source.
+
+```ts
+async updatePrice(id: string, price: number) {
+  const product = await this.source.updatePrice(id, price);
+  await redis.del(`product:${id}`);
+  return product;
+}
+```
+
+Deleting is safer than writing the new value into the cache, because the write path does not need to know how the read path shapes the cached object. This works well with one request at a time. The next two steps are about what happens when that assumption breaks.
+
+## Step 3: the cache stampede
+
+When a popular key expires, every request that arrives before it is rebuilt sees a miss, and every one of them goes to the source. Ten concurrent readers means ten identical source queries at the exact moment the system was already under load.
+
+The fix is to let only one caller rebuild the key. Redis gives us an atomic "set if not exists" with an expiry:
+
+```ts
+const token = randomUUID();
+const acquired = await redis.set(`lock:product:${id}`, token, { NX: true, PX: 10_000 });
+```
+
+The caller that gets the lock reads the source and fills the cache. Everyone else polls the cache every 50 ms for up to 2 seconds, then gives up with a `503` instead of piling onto the source.
+
+One detail is easy to miss. After acquiring the lock, read the cache **again** before going to the source. A caller can find the key missing, wait behind another caller, and acquire the lock only after that caller has already filled the cache. Without the second read, it rebuilds the value for nothing.
+
+The test that pins this down fires ten concurrent `findById` calls on a cold key and asserts exactly one source load and one cache write.
+
+## Step 4: release only your own lock
+
+The obvious release is `DEL lock:product:1`. It is also wrong.
+
+If the rebuild takes longer than the lock's 10-second expiry, the lock disappears on its own, a second caller acquires it, and then the first caller finishes and deletes the **second caller's** lock. Now a third caller can get in too, and the protection is gone.
+
+That is why the lock value is a random token. Release becomes "delete only if the value is still mine", and it has to be atomic, so it runs as a Lua script:
+
+```lua
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end
+return 0
+```
+
+A `GET` followed by a `DEL` from the application would leave a gap between the check and the delete. Inside Lua, Redis runs the whole script as one step.
+
+## Step 5: keep the lock alive while working
+
+A fixed 10-second expiry is a guess. Too short, and slow rebuilds lose the lock. Too long, and a crashed process blocks the key until it expires.
+
+The lab keeps the expiry short and renews it every 5 seconds while the work is still running, again only if the token still matches:
+
+```lua
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("PEXPIRE", KEYS[1], ARGV[2])
+end
+return 0
+```
+
+If a renewal returns `0`, the lock was lost. The operation is aborted instead of continuing as if it still had exclusive access.
+
+## Step 6: the stale write
+
+This was the bug that took the longest to see. With everything above in place, the following interleaving still leaves an old price in the cache:
+
+1. A reader misses the cache, takes the lock and loads the product (old price).
+2. The reader is slow. Meanwhile an update changes the price in the source and deletes the cache key.
+3. The reader finishes and writes the **old** product into the cache.
+
+The cache now holds a price that no longer exists, and it will be served for the next 30 seconds.
+
+Two changes fix it.
+
+**Reads and writes share one lock per product.** An update has to hold `lock:product:<id>` to change the price and invalidate the cache, so it cannot run in the middle of a rebuild. In the lab an update fails fast with `503` when the lock is held, instead of waiting.
+
+**Cache writes check the lock atomically.** The reader only writes to the cache if it still owns the lock at the moment of writing:
+
+```lua
+if redis.call("GET", KEYS[1]) ~= ARGV[1] then
+  return 0
+end
+redis.call("SET", KEYS[2], ARGV[2], "EX", ARGV[3])
+return 1
+```
+
+If the lock expired and someone else took it, the slow reader's write is simply dropped. Invalidation on update uses the same guard around `DEL`.
+
+## What the tests cover, and what they don't
+
+The suite has ten unit tests for the service, run with Vitest against a mocked Redis client. They cover hits and misses, invalidation, ten concurrent readers producing one source load, the 2-second wait timeout, keeping the original error when releasing the lock fails, and the read/update interleaving from step 6.
+
+Because Redis is mocked, **the Lua scripts themselves are not executed by the tests**, and lock renewal has no test yet. Integration tests against a real Redis instance are the next thing I would add.
+
+## Limits worth stating
+
+- This is a single-instance lock. It is not Redlock and makes no promises across a Redis failover.
+- Missing products are not cached, so repeated lookups for unknown ids always reach the source.
+- TTL, lock and renewal timings are hard-coded.
+
+## Takeaways
+
+- Every cache entry needs an expiry, even when you also invalidate.
+- Rebuilding a key is a critical section. Protect it, and re-read the cache after acquiring the lock.
+- A lock value should identify its owner, and check-then-act on that lock must be atomic.
+- The dangerous race is not two readers. It is a slow reader and a writer.
+
+The full code, with one branch per step, is on [GitHub](https://github.com/muhamed-mustafa/redis-mastery-lab).
+
+<PostFooter />
+
+</article>

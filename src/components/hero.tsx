@@ -12,23 +12,24 @@ import {
   useTransform,
 } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { profile } from "@/data/profile";
+import { useContent } from "@/content/context";
+import { links } from "@/content";
 import { scrollToId } from "@/lib/cn";
 import { GitHubIcon, LinkedInIcon } from "./icons";
 import { TerminalCard } from "./terminal-card";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-function RoleRotator() {
+function RoleRotator({ roles }: { roles: string[] }) {
   const [i, setI] = useState(0);
   const reduce = useReducedMotion();
   useEffect(() => {
     if (reduce) return;
-    const id = window.setInterval(() => setI((v) => (v + 1) % profile.rotatingRoles.length), 2800);
+    const id = window.setInterval(() => setI((v) => (v + 1) % roles.length), 2800);
     return () => window.clearInterval(id);
-  }, [reduce]);
+  }, [reduce, roles.length]);
   return (
-    <span className="relative inline-flex h-[1.4em] overflow-hidden align-bottom">
+    <span className="relative inline-flex h-[1.5em] overflow-hidden align-bottom">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
           key={i}
@@ -38,10 +39,10 @@ function RoleRotator() {
           transition={{ duration: 0.55, ease }}
           className="text-gradient whitespace-nowrap"
         >
-          {profile.rotatingRoles[i]}
+          {roles[i]}
         </motion.span>
       </AnimatePresence>
-      <span className="ml-0.5 animate-blink text-accent">|</span>
+      <span className="ms-0.5 animate-blink text-accent">|</span>
     </span>
   );
 }
@@ -70,9 +71,9 @@ function Magnetic({ children }: { children: ReactNode }) {
   );
 }
 
-const nameWords = profile.name.split(" ");
-
 export function Hero() {
+  const c = useContent();
+  const nameWords = c.name.split(" ");
   const sectionRef = useRef<HTMLElement>(null);
   const mx = useMotionValue(50);
   const my = useMotionValue(30);
@@ -103,100 +104,100 @@ export function Hero() {
         style={{ y: contentY, opacity: contentOpacity }}
         className="relative mx-auto grid w-full max-w-6xl items-center gap-16 lg:grid-cols-[1.2fr_1fr]"
       >
-        <div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease }}
-          className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-3 py-1.5 text-xs text-muted backdrop-blur"
-        >
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
-          </span>
-          Open to backend & full-stack opportunities
-        </motion.div>
-
-        <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl lg:text-6xl xl:text-7xl">
-          {nameWords.map((word, i) => (
-            <span key={word}>
-              <span className="inline-block overflow-hidden pb-2 align-bottom">
-                <motion.span
-                  className="inline-block"
-                  initial={{ y: "110%" }}
-                  animate={{ y: "0%" }}
-                  transition={{ duration: 0.9, delay: 0.15 + i * 0.12, ease }}
-                >
-                  {word}
-                </motion.span>
-              </span>
-              {i < nameWords.length - 1 ? " " : null}
+        <div className="min-w-0">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease }}
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-3 py-1.5 text-xs text-muted backdrop-blur"
+          >
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
             </span>
-          ))}
-        </h1>
+            {c.badge}
+          </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.45, ease }}
-          className="mt-4 text-2xl font-medium tracking-tight sm:text-3xl"
-        >
-          <RoleRotator />
-        </motion.p>
+          <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl lg:text-6xl xl:text-7xl">
+            {nameWords.map((word, i) => (
+              <span key={word}>
+                <span className="inline-block overflow-hidden pb-3 align-bottom">
+                  <motion.span
+                    className="inline-block"
+                    initial={{ y: "110%" }}
+                    animate={{ y: "0%" }}
+                    transition={{ duration: 0.9, delay: 0.15 + i * 0.12, ease }}
+                  >
+                    {word}
+                  </motion.span>
+                </span>
+                {i < nameWords.length - 1 ? " " : null}
+              </span>
+            ))}
+          </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.6, ease }}
-          className="mt-6 max-w-xl text-lg text-pretty text-muted"
-        >
-          {profile.intro}
-        </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.45, ease }}
+            className="mt-4 max-w-full text-lg font-medium tracking-tight sm:text-2xl md:text-3xl"
+          >
+            <RoleRotator roles={c.rotatingRoles} />
+          </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.75, ease }}
-          className="mt-10 flex flex-wrap items-center gap-3"
-        >
-          <Magnetic>
-            <button
-              type="button"
-              onClick={() => scrollToId("projects")}
-              className="group inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-transform active:scale-95"
-            >
-              View my work
-              <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </button>
-          </Magnetic>
-          <Magnetic>
-            <a
-              href={profile.cv}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-6 py-3 text-sm font-medium backdrop-blur transition-colors hover:border-accent"
-            >
-              <FileDown className="size-4" /> Download CV
-            </a>
-          </Magnetic>
-          <div className="ml-1 flex items-center gap-1">
-            <a href={profile.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground">
-              <GitHubIcon className="size-5" />
-            </a>
-            <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground">
-              <LinkedInIcon className="size-5" />
-            </a>
-          </div>
-        </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.6, ease }}
+            className="mt-6 max-w-xl text-lg text-pretty text-muted"
+          >
+            {c.intro}
+          </motion.p>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-8 flex items-center gap-1.5 text-sm text-muted"
-        >
-          <MapPin className="size-4" /> {profile.location}
-        </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.75, ease }}
+            className="mt-10 flex flex-wrap items-center gap-3"
+          >
+            <Magnetic>
+              <button
+                type="button"
+                onClick={() => scrollToId("projects")}
+                className="group inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-transform active:scale-95"
+              >
+                {c.ui.viewWork}
+                <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:-scale-x-100" />
+              </button>
+            </Magnetic>
+            <Magnetic>
+              <a
+                href={links.cv}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-6 py-3 text-sm font-medium backdrop-blur transition-colors hover:border-accent"
+              >
+                <FileDown className="size-4" /> {c.ui.downloadCv}
+              </a>
+            </Magnetic>
+            <div className="ms-1 flex items-center gap-1">
+              <a href={links.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground">
+                <GitHubIcon className="size-5" />
+              </a>
+              <a href={links.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground">
+                <LinkedInIcon className="size-5" />
+              </a>
+            </div>
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="mt-8 flex items-center gap-1.5 text-sm text-muted"
+          >
+            <MapPin className="size-4" /> {c.location}
+          </motion.p>
         </div>
         <div className="hidden lg:block">
           <TerminalCard />
@@ -206,7 +207,7 @@ export function Hero() {
       <motion.button
         type="button"
         onClick={() => scrollToId("about")}
-        aria-label="Scroll to about"
+        aria-label={c.ui.scrollDown}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1, y: [0, 8, 0] }}
         transition={{ opacity: { delay: 1.2 }, y: { duration: 2, repeat: Infinity, ease: "easeInOut" } }}
