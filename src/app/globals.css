@@ -230,6 +230,39 @@ html[lang="ar"] body {
   opacity: 1;
 }
 
+/* Rotating gradient border, animated only while the card is hovered. */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-spin {
+  to { --border-angle: 360deg; }
+}
+
+.spotlight::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: conic-gradient(from var(--border-angle), transparent 0 62%, var(--accent) 78%, var(--accent-2) 90%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+@media (hover: hover) {
+  .spotlight:hover::after {
+    opacity: 1;
+    animation: border-spin 3.2s linear infinite;
+  }
+}
+
 @media (max-width: 1023px) {
   .noise::after { display: none; }
   .animate-aurora { animation: none; }
