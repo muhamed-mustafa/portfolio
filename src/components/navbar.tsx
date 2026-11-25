@@ -51,12 +51,12 @@ export function Navbar() {
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="flex items-center gap-2 rounded-full px-2 py-1 font-semibold tracking-tight"
-          aria-label={c.ui.backToTop}
         >
-          <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 font-sans text-sm font-bold text-white" dir="ltr">
+          <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-accent to-accent-2 font-sans text-sm font-bold text-white" dir="ltr">
             MM
           </span>
           <span className="hidden sm:inline">{c.firstName}</span>
+          <span className="sr-only">{c.ui.backToTop}</span>
         </button>
 
         <ul className="hidden items-center gap-1 lg:flex">
