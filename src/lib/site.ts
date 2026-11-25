@@ -1,4 +1,16 @@
-export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://muhamed-mustafa.vercel.app").replace(/\/$/, "");
+const DEFAULT_SITE_URL = "https://muhammed-mustafa.vercel.app";
+
+function resolveSiteUrl() {
+  const raw = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
+/** Public origin of the site, used for canonical links, the sitemap and Open Graph tags. */
+export const siteUrl = resolveSiteUrl();
 
 export const siteTitle = "Muhammed Mustafa — Backend Software Engineer";
 

@@ -42,3 +42,5 @@ next-env.d.ts
 
 # local package store config
 .npmrc
+.vercel
+.env*
