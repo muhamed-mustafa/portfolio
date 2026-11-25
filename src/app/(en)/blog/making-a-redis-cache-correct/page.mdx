@@ -1,11 +1,12 @@
 import { PostFooter, PostHeader } from "@/components/post-header";
+import { ogImage } from "@/lib/metadata";
 
 export const metadata = {
   title: "Making a Redis cache correct under concurrency",
   description:
     "Cache-aside is easy until two requests race. How I added stampede protection, token-owned locks, lock renewal and Lua-guarded writes, step by step.",
   alternates: { canonical: "/blog/making-a-redis-cache-correct" },
-  openGraph: { type: "article", publishedTime: "2026-11-20" },
+  openGraph: { type: "article", publishedTime: "2026-11-20", images: [ogImage] },
 };
 
 <article className="mx-auto max-w-3xl">

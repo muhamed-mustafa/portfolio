@@ -1,11 +1,12 @@
 import { PostFooter, PostHeader } from "@/components/post-header";
+import { ogImage } from "@/lib/metadata";
 
 export const metadata = {
   title: "Keeping tokens out of the browser with a backend-for-frontend",
   description:
     "Why my Next.js admin panel never gives the browser an access token, and the session, CSRF and refresh-rotation details that make that work.",
   alternates: { canonical: "/blog/keeping-tokens-out-of-the-browser" },
-  openGraph: { type: "article", publishedTime: "2026-11-24" },
+  openGraph: { type: "article", publishedTime: "2026-11-24", images: [ogImage] },
 };
 
 <article className="mx-auto max-w-3xl">
