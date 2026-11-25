@@ -1,5 +1,4 @@
-import Image from "next/image";
-import adminShot from "@/assets/airbnb-admin-overview.png";
+import { ScreenGallery } from "./screen-gallery";
 
 type Node = { id: string; x: number; y: number; w?: number; label: string; sub?: string; tone?: "accent" | "data" | "plain" };
 type Diagram = { nodes: Node[]; edges: [string, string][]; bus?: { y: number; x1: number; x2: number; label: string } };
@@ -160,19 +159,7 @@ function MiniDiagram({ diagram, label }: { diagram: Diagram; label: string }) {
 }
 
 export function ProjectVisual({ repo, title }: { repo: string; title: string }) {
-  if (repo === "airbnb-clone-web") {
-    return (
-      <div className="relative aspect-[3/2] overflow-hidden rounded-2xl border border-border bg-surface-2 sm:aspect-[16/7]">
-        <Image
-          src={adminShot}
-          alt={`${title}: overview screen`}
-          placeholder="blur"
-          sizes="(min-width: 1024px) 1100px, 100vw"
-          className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.02]"
-        />
-      </div>
-    );
-  }
+  if (repo === "airbnb-clone-web") return <ScreenGallery title={title} />;
   const diagram = diagrams[repo];
   if (!diagram) return null;
   return (

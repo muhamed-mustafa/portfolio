@@ -24,7 +24,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.6, delay: (index % 2) * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      style={reduce ? undefined : { rotateX, rotateY, transformPerspective: 1000 }}
+      style={reduce || project.repo === "airbnb-clone-web" ? undefined : { rotateX, rotateY, transformPerspective: 1000 }}
       onPointerMove={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width;
@@ -38,7 +38,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
         px.set(0.5);
         py.set(0.5);
       }}
-      className={cn("card spotlight group flex flex-col rounded-3xl p-6 sm:p-8", project.featured && "md:col-span-2")}
+      className={cn("card spotlight group flex min-w-0 flex-col rounded-3xl p-6 sm:p-8", project.featured && "md:col-span-2")}
     >
       <div className="mb-6">
         <ProjectVisual repo={project.repo} title={project.title} />
@@ -99,7 +99,7 @@ export function Projects() {
     <section id="projects" className="px-6 py-28">
       <div className="mx-auto max-w-6xl">
         <SectionHeading {...c.sections.projects} />
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {c.projects.map((p, i) => (
             <ProjectCard key={p.repo} project={p} index={i} />
           ))}

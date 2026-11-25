@@ -13,7 +13,7 @@ export function Writing() {
     <section id="writing" className="px-6 py-28">
       <div className="mx-auto max-w-6xl">
         <SectionHeading eyebrow={s.eyebrow} title={s.title} description={s.note ? `${s.description} ${s.note}` : s.description} />
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {posts.map((p, i) => (
             <motion.a
               key={p.slug}
@@ -28,7 +28,7 @@ export function Writing() {
                 e.currentTarget.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`);
                 e.currentTarget.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`);
               }}
-              className="card spotlight group flex flex-col rounded-3xl p-6 sm:p-8"
+              className="card spotlight group flex min-w-0 flex-col rounded-3xl p-6 sm:p-8"
             >
               <div className="flex items-center gap-3 font-mono text-xs text-muted" dir="ltr">
                 <time dateTime={p.date}>{p.dateLabel}</time>

@@ -27,6 +27,9 @@ export type Project = {
 
 export type SectionText = { eyebrow: string; title: string; description?: string };
 
+/** Every number here is verifiable: from the CV, or counted in the public repositories. */
+export type Stat = { value?: number; display?: string; suffix?: string; label: string; note: string };
+
 export type Content = {
   locale: Locale;
   dir: "ltr" | "rtl";
@@ -49,7 +52,9 @@ export type Content = {
     writing: SectionText & { note?: string; readMore: string; allPosts: string };
     skills: SectionText;
   };
-  stats: { value: number; suffix: string; label: string }[];
+  stats: Stat[];
+  impactTitle: string;
+  gallery: { overview: string; rtl: string; dialog: string; label: string };
   experience: Experience[];
   projects: Project[];
   skillGroups: { title: string; items: string[] }[];
@@ -159,12 +164,16 @@ const en: Content = {
     },
     skills: { eyebrow: "Skills", title: "The tools I reach for." },
   },
+  impactTitle: "By the numbers",
   stats: [
-    { value: 4, suffix: "+", label: "Years building backends" },
-    { value: 10, suffix: "+", label: "Client products shipped" },
-    { value: 3, suffix: "", label: "Companies & freelance" },
-    { value: 6, suffix: "", label: "Featured open-source projects" },
+    { value: 4, suffix: "+", label: "Years building production backends", note: "Node.js since 2021" },
+    { value: 10, suffix: "+", label: "Client products delivered", note: "at AAIT, in a 3-person backend team" },
+    { value: 8, label: "Microservices in one system", note: "19 event types over NATS" },
+    { display: "10 → 1", label: "Concurrent cache misses to one database load", note: "Redis lock, verified by a test" },
+    { value: 22, label: "End-to-end test specs", note: "against the real backend, not mocks" },
+    { value: 2, label: "Languages with full RTL support", note: "English and Arabic" },
   ],
+  gallery: { overview: "Overview", rtl: "Arabic · RTL", dialog: "Add dialog", label: "Admin panel screens" },
   experience: [
     {
       company: "Awamer Alshabaka (AAIT)",
@@ -228,7 +237,7 @@ const en: Content = {
         "Coordinated refresh-token rotation, CSRF and origin checks",
         "Typed contract and Zod schemas generated from OpenAPI",
         "Full RTL support and WCAG 2.2 accessibility checks",
-        "Playwright end-to-end suite against the real backend",
+        "22 Playwright end-to-end specs against the real backend",
       ],
       stack: ["Next.js", "React", "TanStack Query", "Tailwind CSS", "Playwright"],
       featured: true,
@@ -239,7 +248,7 @@ const en: Content = {
       summary:
         "Eight event-driven TypeScript microservices on Kubernetes: accounts and moderation, posts, comments, a product marketplace, orders and Stripe payments.",
       highlights: [
-        "Database-per-service with event-based data replication",
+        "8 services, 19 event types, one database per service",
         "Optimistic concurrency on replicated documents",
         "Delayed jobs with Bull and Redis for expirations and bans",
       ],
@@ -253,7 +262,7 @@ const en: Content = {
       highlights: [
         "Cache stampede protection with SET NX locks",
         "Lock renewal and Lua-guarded cache writes",
-        "Concurrency tests for interleaved reads and updates",
+        "Tested: 10 concurrent misses trigger exactly 1 source load and 1 cache write",
       ],
       stack: ["NestJS", "Redis", "Lua", "Vitest"],
     },
@@ -407,12 +416,16 @@ const ar: Content = {
     },
     skills: { eyebrow: "المهارات", title: "الأدوات التي أعتمد عليها." },
   },
+  impactTitle: "بالأرقام",
   stats: [
-    { value: 4, suffix: "+", label: "سنوات في بناء الـ Backend" },
-    { value: 10, suffix: "+", label: "منتجات عملاء تم تسليمها" },
-    { value: 3, suffix: "", label: "شركات وعمل حر" },
-    { value: 6, suffix: "", label: "مشاريع مفتوحة المصدر مميزة" },
+    { value: 4, suffix: "+", label: "سنوات في بناء أنظمة Backend للإنتاج", note: "Node.js منذ 2021" },
+    { value: 10, suffix: "+", label: "منتجات عملاء تم تسليمها", note: "في AAIT ضمن فريق Backend من 3 مهندسين" },
+    { value: 8, label: "microservices في نظام واحد", note: "19 نوع حدث عبر NATS" },
+    { display: "10 → 1", label: "طلبات متزامنة تنتهي بقراءة واحدة من قاعدة البيانات", note: "قفل Redis مُثبت باختبار" },
+    { value: 22, label: "اختبار end-to-end", note: "مقابل الـ backend الحقيقي وليس mocks" },
+    { value: 2, label: "لغتان مع دعم كامل لـ RTL", note: "العربية والإنجليزية" },
   ],
+  gallery: { overview: "الرئيسية", rtl: "العربية · RTL", dialog: "نافذة الإضافة", label: "شاشات لوحة الإدارة" },
   experience: [
     {
       ...en.experience[0],
@@ -472,7 +485,7 @@ const ar: Content = {
         "تدوير منسّق للـ refresh token وفحوصات CSRF والـ origin",
         "عقد typed ومخططات Zod مولّدة من OpenAPI",
         "دعم كامل للعربية من اليمين لليسار وفحوصات إتاحة WCAG 2.2",
-        "اختبارات end-to-end بـ Playwright مقابل الـ backend الحقيقي",
+        "22 اختبار end-to-end بـ Playwright مقابل الـ backend الحقيقي",
       ],
     },
     {
@@ -481,7 +494,7 @@ const ar: Content = {
       summary:
         "ثماني microservices بـ TypeScript قائمة على الأحداث وتعمل على Kubernetes: الحسابات والإشراف، والمنشورات، والتعليقات، وسوق منتجات، والطلبات، والدفع عبر Stripe.",
       highlights: [
-        "قاعدة بيانات لكل خدمة مع نسخ البيانات عبر الأحداث",
+        "8 خدمات، و19 نوع حدث، وقاعدة بيانات لكل خدمة",
         "تحكم متفائل في التزامن على المستندات المنسوخة",
         "مهام مؤجلة بـ Bull وRedis لانتهاء الطلبات والحظر",
       ],
@@ -493,7 +506,7 @@ const ar: Content = {
       highlights: [
         "حماية من الـ cache stampede بأقفال SET NX",
         "تجديد القفل وكتابات cache محمية بـ Lua",
-        "اختبارات تزامن للقراءات والتحديثات المتداخلة",
+        "مُختبر: 10 طلبات متزامنة تؤدي إلى قراءة واحدة من المصدر وكتابة واحدة في الـ cache",
       ],
     },
     {
